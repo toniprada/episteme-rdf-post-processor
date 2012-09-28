@@ -1,0 +1,10 @@
+#binaries
+bin/
+
+#eclipse
+.classpath
+.settings
+.project
+
+#private data
+src/com/episteme/datasource/postprocessor/BingAccount.java
