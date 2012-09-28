@@ -109,7 +109,6 @@ public class PostProcessor {
 			Literal lEn = model.createLiteral(textEn, "en");
 			r.addLiteral(p, lEn);
 			// }
-			Thread.sleep(100);
 		} catch (Exception e) {
 			System.out.println("Error translating" + l);
 		}
