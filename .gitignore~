@@ -1,5 +1,16 @@
-target/
-src/test/resources/META-INF/config.properties
+#binaries
+bin/
+
+#eclipse
 .classpath
 .settings
 .project
+
+#gedit
+*.*~
+
+# osX
+*.DS_Store
+
+#private data
+src/com/episteme/datasource/postprocessor/BingAccount.java
