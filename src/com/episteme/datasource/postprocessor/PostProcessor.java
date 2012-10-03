@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.NodeIterator;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
@@ -62,8 +63,10 @@ public class PostProcessor {
 		// Find the statements to process
 		ArrayList<Statement> statements = new ArrayList<>();
 		StmtIterator iter = model.listStatements();
+		String companyName = "";
 		while (iter.hasNext()) {
 			Statement s = iter.nextStatement();
+			// Translation
 			for (int i = 0; i < Config.NAMESPACES_TO_TRANSLATE.length; i++) {
 				if (s.getPredicate().getNameSpace()
 						.contentEquals(Config.NAMESPACES_TO_TRANSLATE[i])) {
@@ -75,10 +78,35 @@ public class PostProcessor {
 					}
 				}
 			}
+			// Dont translate the company name (hack, I feel dirty...)
+			if (s.getPredicate().getLocalName().equals("CompanyName")) {
+				companyName = s.getObject().asResource()
+						.getProperty(model.getProperty(ECOS + "name")).getObject().toString();
+			}
+			// CNAE code
+			Property value = model.createProperty(ECOS + "value");
+			Property cnaeCode = model.createProperty(ECOS + "Code");
+			if (s.getPredicate().getNameSpace().contentEquals(ECOS)) {
+				if (s.getPredicate().getLocalName().contentEquals("Skill")) {
+					NodeIterator iterator = s
+							.getProperty(
+									model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag"))
+							.getBag().iterator();
+					while (iterator.hasNext()) {
+						Resource li = (Resource) iterator.next();
+						Statement name = li.getProperty(model.getProperty(ECOS + "name"));
+						String code = CNAE.getCode(name.getObject().toString());
+						if (code != null) {
+							li.addProperty(cnaeCode,
+									model.createResource().addProperty(value, "CNAE#" + code));
+						}
+					}
+				}
+			}
 		}
 		// Process them
 		for (Statement s : statements) {
-			processStatement(model, s);
+			processStatement(model, s, companyName);
 		}
 		System.out.println(filename + " processed");
 
@@ -90,27 +118,29 @@ public class PostProcessor {
 			System.out.println("Error writing " + filename + " to " + Config.FOLDER_OUTPUT + ": "
 					+ e.getMessage());
 		}
-		// model.write(System.out, "TURTLE");
+		model.write(System.out, "TURTLE");
 	}
 
-	private static void processStatement(Model model, Statement s) {
+	private static void processStatement(Model model, Statement s, String companyName) {
 		Resource r = s.getSubject();
 		Literal l = (Literal) s.getObject();
-		Property p = model.getProperty(s.getPredicate().toString());
-		Literal lEs = model.createLiteral(l.toString(), "es");
-		// delete original
-		r.removeAll(p);
-		// add original with the spanish tag
-		r.addLiteral(p, lEs);
-		// and translate
-		try {
-			String textEn = Translate.execute(l.toString(), Language.SPANISH, Language.ENGLISH);
-			// if (!textEn.contains("TranslateApiException")) {
-			Literal lEn = model.createLiteral(textEn, "en");
-			r.addLiteral(p, lEn);
-			// }
-		} catch (Exception e) {
-			System.out.println("Error translating" + l);
+		if (!l.toString().equals(companyName)) {
+			Property p = model.getProperty(s.getPredicate().toString());
+			Literal lEs = model.createLiteral(l.toString(), "es");
+			// delete original
+			r.removeAll(p);
+			// add original with the spanish tag
+			r.addLiteral(p, lEs);
+			// and translate
+			try {
+				String textEn = Translate.execute(l.toString(), Language.SPANISH, Language.ENGLISH);
+				// if (!textEn.contains("TranslateApiException")) {
+				Literal lEn = model.createLiteral(textEn, "en");
+				r.addLiteral(p, lEn);
+				// }
+			} catch (Exception e) {
+				System.out.println("Error translating" + l);
+			}
 		}
 	}
 
