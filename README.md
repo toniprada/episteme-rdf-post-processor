@@ -11,7 +11,7 @@ Go to Config.java file to change input/output folders, namespaces, localnames to
 
 ## Contributors
 
-Developed by Antonio Prada (<toniprada@gmail.com>) at [GSI](http://www.gsi.dit.upm.es/), ETSIT-UPM.
+Developed by Antonio Prada at [GSI](http://www.gsi.dit.upm.es/), ETSIT-UPM.
 
 
 ## License
